@@ -7,7 +7,7 @@ import RestApiService from './src/services/restApiService';
 import NotificationService from './src/services/notificationService';
 import CustomerService from './src/services/customerService';
 
-import { INVALID_DATA_PROVIDED } from './src/constants/errors';
+import { INVALID_DATA_PROVIDED, ERRORS } from './src/constants/errors';
 
 const NotificationLogs = new ModelService.Instance().create('NotificationLog');
 const NotificationTemplates = new ModelService.Instance().create(
@@ -29,21 +29,19 @@ const get = function (req: any, res: any): any {
 			req.param('_id')
 		);
 		if (!notification) {
-			//return ErrorService.err({message: 'Resource not found'},
-			//  ErrorService.statusCodes.STATUS_FAIL_NOT_FOUND, res);
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'notification',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 		}
 		if (req.param('action') == 'test') {
 			NotificationService._processnotification(
 				{
-					user: req._currentUser.email, // @TODO add alternative !!!
+					user: !!req._currentUser && !!req._currentUser.email ? req._currentUser.email : '', 
 					notice: 'THIS IS TEST',
 					testing: 'thisisfortest',
 				},
@@ -55,55 +53,44 @@ const get = function (req: any, res: any): any {
 					if (err) {
 						notification.testre = '' + err;
 						return RestApiService.Response.new.resp(
-							200,
+							ERRORS.OKAY.CODE,
 							'notification',
 							notification,
 							null,
 							null,
 							res
 						);
-						//return RestApiService.Response.success({notification: notification,
-						//  test:testre
-						//}, res);
 					}
 					notification.testre = response;
-					if (response.statusCode)
-						testre = 'http responce status: ' + response.statusCode;
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'notification',
 						notification,
 						null,
 						null,
 						res
 					);
-					//return RestApiService.Response.success({notification: notification,
-					//test:testre
-					//}, res);
 				}
 			);
 		} else {
 			return RestApiService.Response.new.resp(
-				200,
+				ERRORS.OKAY.CODE,
 				'notification',
 				notification,
 				null,
 				null,
 				res
 			);
-			// return RestApiService.Response.success({notification: notification}, res);
 		}
 	} else {
-		//          NotificationService._dispatch(req, "data tata some JSON", "transaction failure");
 		return RestApiService.Response.new.resp(
-			200,
+			ERRORS.OKAY.CODE,
 			'notifications',
 			req._companyAccount.company.notifications,
 			{ count: req._companyAccount.company.notifications.length },
 			null,
 			res
 		);
-		// return RestApiService.Response.success({notifications: req._companyAccount.companies.notifications}, res);
 	}
 };
 
@@ -112,11 +99,11 @@ const resendNotification = function (req: any, res: any): void {
 	NotificationLogs.findOne(query, function (err, log) {
 		if (err || !log) {
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'notification_log',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 			//return ErrorService.err({message: err},
@@ -131,7 +118,7 @@ const resendNotification = function (req: any, res: any): void {
 					})
 				)
 					return RestApiService.Response.new.resp(
-						400,
+						ERRORS.BAD_REQUEST.CODE,
 						'notification_log',
 						null,
 						null,
@@ -144,7 +131,7 @@ const resendNotification = function (req: any, res: any): void {
 					);
 				if (log.type == 'email' && !multiEmail(req.body.destination))
 					return RestApiService.Response.new.resp(
-						400,
+						ERRORS.BAD_REQUEST.CODE,
 						'notification_log',
 						null,
 						null,
@@ -163,7 +150,7 @@ const resendNotification = function (req: any, res: any): void {
 					)
 				)
 					return RestApiService.Response.new.resp(
-						400,
+						ERRORS.BAD_REQUEST.CODE,
 						'notification_log',
 						null,
 						null,
@@ -194,7 +181,7 @@ const resendNotification = function (req: any, res: any): void {
 									res
 								);
 							return RestApiService.Response.new.resp(
-								200,
+								ERRORS.OKAY.CODE,
 								'notification_log',
 								nlog,
 								null,
@@ -247,11 +234,11 @@ const deleteNotificationLog = (req: any, res: any): void {
 	NotificationLogs.findOne(query, function (err, log) {
 		if (err || !log) {
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'notification_log',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 			//return ErrorService.err({message: err},
@@ -260,7 +247,7 @@ const deleteNotificationLog = (req: any, res: any): void {
 		log.archived = true;
 		log.save(function (txErr, logm) {
 			return RestApiService.Response.new.resp(
-				200,
+				ERRORS.OKAY.CODE,
 				'charge',
 				logm,
 				null,
@@ -291,11 +278,11 @@ const getLogs = function (req: any, res: any): void {
 		NotificationLogs.findOne(query, proj, function (err, log) {
 			if (err || !log) {
 				return RestApiService.Response.new.resp(
-					404,
+					ERRORS.NOT_FOUND.CODE,
 					'notification_log',
 					null,
 					null,
-					'Not Found',
+					ERRORS.NOT_FOUND.MESSAGE,
 					res
 				);
 				//return ErrorService.err({message: err},
@@ -303,7 +290,7 @@ const getLogs = function (req: any, res: any): void {
 			}
 			if (log) {
 				return RestApiService.Response.new.resp(
-					200,
+					ERRORS.OKAY.CODE,
 					'notification_log',
 					log,
 					null,
@@ -380,7 +367,7 @@ const getLogs = function (req: any, res: any): void {
 			function (err, result) {
 				if (err) {
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'notification_logs',
 						[],
 						defresult,
@@ -390,7 +377,7 @@ const getLogs = function (req: any, res: any): void {
 					//return ErrorService.err({message: 'database query error'}, ErrorService.statusCodes.STATUS_SRV_ERROR, res);
 				}
 				return RestApiService.Response.new.resp(
-					200,
+					ERRORS.OKAY.CODE,
 					'notification_logs',
 					result.logs,
 					result,
@@ -411,7 +398,7 @@ const getLogs = function (req: any, res: any): void {
 const post = function (req: any, res: any): any {
 	if (req.body.type != 'webhook' && !req.body.template_id)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -424,7 +411,7 @@ const post = function (req: any, res: any): any {
 		);
 	if (!req.body.destination)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -437,7 +424,7 @@ const post = function (req: any, res: any): any {
 		);
 	if (!req.body.event)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -454,7 +441,7 @@ const post = function (req: any, res: any): any {
 		req.body.type != 'sms'
 	)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -470,7 +457,7 @@ const post = function (req: any, res: any): any {
 		!validator.isURL(req.body.destination + '', { require_protocol: true })
 	)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -483,7 +470,7 @@ const post = function (req: any, res: any): any {
 		);
 	if (req.body.type == 'email' && !multiEmail(req.body.destination))
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -500,7 +487,7 @@ const post = function (req: any, res: any): any {
 		!validator.isEmail(req.body.from + '')
 	) {
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -520,7 +507,7 @@ const post = function (req: any, res: any): any {
 		)
 	) {
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -535,7 +522,7 @@ const post = function (req: any, res: any): any {
 	}
 	if (req.body.type == 'sms' && sails.config.disable_sms)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -561,7 +548,7 @@ const post = function (req: any, res: any): any {
 			req._companyAccount.save(function (err) {
 				if (err) {
 					return RestApiService.Response.new.resp(
-						400,
+						ERRORS.BAD_REQUEST.CODE,
 						'notification',
 						notification,
 						null,
@@ -643,7 +630,7 @@ const post = function (req: any, res: any): any {
 		NotificationTemplates.findOne(query, function (err, template) {
 			if (err || !template) {
 				return RestApiService.Response.new.resp(
-					400,
+					ERRORS.BAD_REQUEST.CODE,
 					'notification',
 					null,
 					null,
@@ -657,7 +644,7 @@ const post = function (req: any, res: any): any {
 			} else {
 				if (req.body.event != template.notification_event)
 					return RestApiService.Response.new.resp(
-						400,
+						ERRORS.BAD_REQUEST.CODE,
 						'notification',
 						null,
 						null,
@@ -676,7 +663,7 @@ const post = function (req: any, res: any): any {
 				req._companyAccount.save(function (err, company) {
 					if (err) {
 						return RestApiService.Response.new.resp(
-							400,
+							ERRORS.BAD_REQUEST.CODE,
 							'notification',
 							notification,
 							null,
@@ -735,16 +722,16 @@ const getTemplate = function(req: any, res: any): void {
 			function (err, template) {
 				if (err || !template) {
 					return RestApiService.Response.new.resp(
-						404,
+						ERRORS.NOT_FOUND.CODE,
 						'template',
 						null,
 						null,
-						'Not Found',
+						ERRORS.NOT_FOUND.MESSAGE,
 						res
 					);
 				} else {
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'template',
 						template,
 						null,
@@ -814,7 +801,7 @@ const getTemplate = function(req: any, res: any): void {
 			function (err, result) {
 				if (err) {
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'templates',
 						[],
 						defresult,
@@ -824,7 +811,7 @@ const getTemplate = function(req: any, res: any): void {
 					//return ErrorService.err({message: 'database query error'}, ErrorService.statusCodes.STATUS_SRV_ERROR, res);
 				}
 				return RestApiService.Response.new.resp(
-					200,
+					ERRORS.OKAY.CODE,
 					'templates',
 					result.templates,
 					result,
@@ -846,11 +833,11 @@ const updateTemplate = function(req: any, res: any): void {
 	NotificationTemplates.findOne(query, { __v: 0 }, function (err, template) {
 		if (err || !template) {
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'template',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 		} else {
@@ -881,7 +868,7 @@ const updateTemplate = function(req: any, res: any): void {
 					);
 				} else {
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'template',
 						template,
 						null,
@@ -903,11 +890,11 @@ const deleteTemplate = function(req: any, res: any): void {
 	NotificationTemplates.findOne(query, { __v: 0 }, function (err, template) {
 		if (err || !template) {
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'template',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 		} else {
@@ -924,7 +911,7 @@ const deleteTemplate = function(req: any, res: any): void {
 					);
 				} else {
 					return RestApiService.Response.new.resp(
-						200,
+						ERRORS.OKAY.CODE,
 						'template',
 						template,
 						null,
@@ -958,7 +945,7 @@ const postTemplate = function(req: any, res: any): any {
 		template.user_id = req._currentUser._id;
 	if (!req.body.notification_event)
 		return RestApiService.Response.new.resp(
-			400,
+			ERRORS.BAD_REQUEST.CODE,
 			'notification',
 			null,
 			null,
@@ -973,7 +960,7 @@ const postTemplate = function(req: any, res: any): any {
 	notificationTemplate.save(function (err, notificationTemplate) {
 		if (err) {
 			return RestApiService.Response.new.resp(
-				400,
+				ERRORS.BAD_REQUEST.CODE,
 				'notification',
 				notificationTemplate,
 				null,
@@ -1008,11 +995,11 @@ const _delete = function(req: any, res: any): any {
 	);
 	if (!notification) {
 		return RestApiService.Response.new.resp(
-			404,
+			ERRORS.NOT_FOUND.CODE,
 			'notification',
 			null,
 			null,
-			'Not Found',
+			ERRORS.NOT_FOUND.MESSAGE,
 			res
 		);
 	}
@@ -1021,11 +1008,11 @@ const _delete = function(req: any, res: any): any {
 	req._companyAccount.save(function (err) {
 		if (err) {
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'notification',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 			//return ErrorService.err({message: 'Invalid data provided', errors: err.errors},
@@ -1039,7 +1026,7 @@ const _delete = function(req: any, res: any): any {
 			);
 		}
 		return RestApiService.Response.new.resp(
-			200,
+			ERRORS.OKAY.CODE,
 			'notification',
 			notification,
 			null,
@@ -1057,7 +1044,7 @@ const getTemplateVars = function(req: any, res: any): any {
 		);
 		if (eVars)
 			return RestApiService.Response.new.resp(
-				200,
+				ERRORS.OKAY.CODE,
 				'variables',
 				eVars,
 				null,
@@ -1066,18 +1053,18 @@ const getTemplateVars = function(req: any, res: any): any {
 			);
 		else
 			return RestApiService.Response.new.resp(
-				404,
+				ERRORS.NOT_FOUND.CODE,
 				'variables',
 				null,
 				null,
-				'Not Found',
+				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
 	} else {
 		var eVars =
 			NotificationService.getNotificationTemplateAvailableVars(null);
 		return RestApiService.Response.new.resp(
-			200,
+			ERRORS.OKAY.CODE,
 			'variables',
 			eVars,
 			null,
@@ -1089,7 +1076,7 @@ const getTemplateVars = function(req: any, res: any): any {
 
 const badRequestResponseError = function(error, type, res): any {
 	return RestApiService.Response.new.resp(
-		400,
+		ERRORS.BAD_REQUEST.CODE,
 		type,
 		null,
 		null,
