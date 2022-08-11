@@ -1081,22 +1081,7 @@ const getTemplateVars = function(req: any, res: any): any {
 	}
 }
 
-export default {
-	get,
-	resendNotification,
-	deleteNotificationLog,
-	getLogs,
-	post,
-	getTemplate,
-	updateTemplate,
-	deleteTemplate,
-	postTemplate,
-	// Fixed reserved word
-	delete: _delete,
-	getTemplateVars,
-};
-
-function multiEmail(email_field: string): boolean {
+const multiEmail = function(email_field: string): boolean {
 	var email = email_field.split(',');
 	for (var i = 0; i < email.length; i++) {
 		if (
@@ -1109,7 +1094,7 @@ function multiEmail(email_field: string): boolean {
 	return true;
 }
 
-function badRequestResponseError(error, type, res): any {
+const badRequestResponseError = function(error, type, res): any {
 	return RestApiService.Response.new.resp(
 		400,
 		type,
@@ -1123,3 +1108,20 @@ function badRequestResponseError(error, type, res): any {
 		res
 	);
 }
+
+export default {
+    badRequestResponseError,
+	// Fixed reserved word
+	delete: _delete,
+	deleteNotificationLog,
+	deleteTemplate,
+	get,
+	getLogs,
+	getTemplate,
+	getTemplateVars,
+    multiEmail,
+	resendNotification,
+	post,
+	postTemplate,
+	updateTemplate,
+};
