@@ -4,7 +4,7 @@
   "description": "JS test",
   "main": "index.ts",
   "scripts": {
-    "dev": "tsc --build",
+    "build": "tsc --build",
     "test": "npx jest"
   },
   "author": "Tammy Nair",

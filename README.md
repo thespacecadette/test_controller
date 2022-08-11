@@ -5,5 +5,13 @@ I've decided to rewrite this code in Typescript (due to its readability and it t
 
 ## Installation of Dev Env
 1. Install node and npm 
-2. Navigate to project directory and enter in command line `npm run build`
+2. Navigate to project directory.
+3. Install dependencies `npm install`
+4.  and enter in command line `npm run build`
 
+## Tests
+### Unit tests
+`npm test`
+
+### Coverage Report
+`npm test` and open `./coverage/lcov-report/index.html` for coverage. 
