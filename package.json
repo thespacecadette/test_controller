@@ -5,13 +5,17 @@
   "main": "index.ts",
   "scripts": {
     "dev": "tsc --build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx jest"
   },
   "author": "Tammy Nair",
   "license": "ISC",
   "devDependencies": {
+    "@types/jest": "^28.1.6",
+    "@types/validator": "^13.7.5",
+    "jest": "^28.1.3",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
+    "ts-jest": "^28.0.7",
     "typescript": "^4.7.4",
     "validator": "^13.7.0"
   }

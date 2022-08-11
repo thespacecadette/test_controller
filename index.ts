@@ -2,6 +2,7 @@ import moment from 'moment';
 import validator from 'validator';
 import lodash from 'lodash';
 import ModelService from '../services/ModelService';
+import multiEmail from './src/utilities/multiEmail';
 
 const NotificationLogs = new ModelService.Instance.create('NotificationLog');
 const NotificationTemplates = new ModelService.Instance.create(
@@ -1079,19 +1080,6 @@ const getTemplateVars = function(req: any, res: any): any {
 			res
 		);
 	}
-}
-
-const multiEmail = function(email_field: string): boolean {
-	var email = email_field.split(',');
-	for (var i = 0; i < email.length; i++) {
-		if (
-			!validator.isEmail(email[i] + '') &&
-			email[i].trim() != '{{EMAIL}}'
-		) {
-			return false;
-		}
-	}
-	return true;
 }
 
 const badRequestResponseError = function(error, type, res): any {
