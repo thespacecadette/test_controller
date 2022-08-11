@@ -1,0 +1,15 @@
+{
+  "name": "test_controller",
+  "version": "1.0.0",
+  "description": "JS test",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "tsc --build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tammy Nair",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}
