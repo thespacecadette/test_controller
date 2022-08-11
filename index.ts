@@ -1,6 +1,6 @@
-import moment from 'moment';
+import * as moment from 'moment';
 import validator from 'validator';
-import lodash from 'lodash';
+import { hasIn, pick, isNil } from 'lodash';
 import ModelService from './src/services/modelService';
 import multiEmail from './src/utilities/multiEmail';
 import RestApiService from './src/services/restApiService';
@@ -551,7 +551,7 @@ const post = function (req: any, res: any): any {
 		);
 	if (req.body.type === 'webhook') {
 		function createNotification() {
-			const webhookBody = lodash.pick(
+			const webhookBody = pick(
 				req.body,
 				Object.values(CompanyAccount.notificationWebhookFields)
 			);
@@ -595,7 +595,7 @@ const post = function (req: any, res: any): any {
 		function notificationServiceValidation(callback) {
 			const { notificationServiceId, destination } =
 				CompanyAccount.notificationWebhookFields;
-			const webhookBody = lodash.pick(
+			const webhookBody = pick(
 				req.body,
 				Object.values(CompanyAccount.notificationWebhookFields)
 			);
@@ -951,8 +951,8 @@ const postTemplate = function(req: any, res: any): any {
 		template.updated_at;
 	template.company_id = req._companyAccount._id;
 	if (
-		lodash.hasIn(req, '_currentUser._id') &&
-		!lodash.isNil(req._currentUser._id) &&
+		hasIn(req, '_currentUser._id') &&
+		!isNil(req._currentUser._id) &&
 		req._currentUser._id !== ''
 	)
 		template.user_id = req._currentUser._id;
