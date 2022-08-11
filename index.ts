@@ -3,11 +3,11 @@ import validator from 'validator';
 import { hasIn, pick, isNil } from 'lodash';
 import ModelService from './src/services/modelService';
 import multiEmail from './src/utilities/multiEmail';
-import RestApiService from './src/services/restApiService';
+import RestApiService, { ResponseType, ResponseMessages, ResponseCodes } from './src/services/restApiService';
 import NotificationService from './src/services/notificationService';
 import CustomerService from './src/services/customerService';
 
-import { INVALID_DATA_PROVIDED, ERRORS } from './src/constants/errors';
+import { ERRORS } from './src/constants/errors';
 
 const NotificationLogs = new ModelService.Instance().create('NotificationLog');
 const NotificationTemplates = new ModelService.Instance().create(
@@ -31,7 +31,7 @@ const get = function (req: any, res: any): any {
 		if (!notification) {
 			return RestApiService.Response.new.resp(
 				ERRORS.NOT_FOUND.CODE,
-				'notification',
+				ResponseType.NOTIFICATION,
 				null,
 				null,
 				ERRORS.NOT_FOUND.MESSAGE,
@@ -54,7 +54,7 @@ const get = function (req: any, res: any): any {
 						notification.testre = '' + err;
 						return RestApiService.Response.new.resp(
 							ERRORS.OKAY.CODE,
-							'notification',
+							ResponseType.NOTIFICATION,
 							notification,
 							null,
 							null,
@@ -64,7 +64,7 @@ const get = function (req: any, res: any): any {
 					notification.testre = response;
 					return RestApiService.Response.new.resp(
 						ERRORS.OKAY.CODE,
-						'notification',
+						ResponseType.NOTIFICATION,
 						notification,
 						null,
 						null,
@@ -75,7 +75,7 @@ const get = function (req: any, res: any): any {
 		} else {
 			return RestApiService.Response.new.resp(
 				ERRORS.OKAY.CODE,
-				'notification',
+				ResponseType.NOTIFICATION,
 				notification,
 				null,
 				null,
@@ -85,7 +85,7 @@ const get = function (req: any, res: any): any {
 	} else {
 		return RestApiService.Response.new.resp(
 			ERRORS.OKAY.CODE,
-			'notifications',
+			ResponseType.NOTIFICATIONS,
 			req._companyAccount.company.notifications,
 			{ count: req._companyAccount.company.notifications.length },
 			null,
@@ -100,7 +100,7 @@ const resendNotification = function (req: any, res: any): void {
 		if (err || !log) {
 			return RestApiService.Response.new.resp(
 				ERRORS.NOT_FOUND.CODE,
-				'notification_log',
+				ResponseType.NOTIFICATION_LOG,
 				null,
 				null,
 				ERRORS.NOT_FOUND.MESSAGE,
@@ -119,12 +119,12 @@ const resendNotification = function (req: any, res: any): void {
 				)
 					return RestApiService.Response.new.resp(
 						ERRORS.BAD_REQUEST.CODE,
-						'notification_log',
+						ResponseType.NOTIFICATION_LOG,
 						null,
 						null,
 						{
-							message: 'Invalid data provided',
-							code: 'ValidationError',
+							message: ResponseMessages.INVALID_DATA,
+							code: ResponseCodes.VALIDATION_ERROR,
 							errors: 'Destination: URL is not correct',
 						},
 						res
@@ -132,12 +132,12 @@ const resendNotification = function (req: any, res: any): void {
 				if (log.type == 'email' && !multiEmail(req.body.destination))
 					return RestApiService.Response.new.resp(
 						ERRORS.BAD_REQUEST.CODE,
-						'notification_log',
+						ResponseType.NOTIFICATION_LOG,
 						null,
 						null,
 						{
-							message: 'Invalid data provided',
-							code: 'ValidationError',
+							message: ResponseMessages.INVALID_DATA,
+							code: ResponseCodes.VALIDATION_ERROR,
 							errors: 'Destination: one or more email addresses entered are invalid',
 						},
 						res
@@ -151,12 +151,12 @@ const resendNotification = function (req: any, res: any): void {
 				)
 					return RestApiService.Response.new.resp(
 						ERRORS.BAD_REQUEST.CODE,
-						'notification_log',
+						ResponseType.NOTIFICATION_LOG,
 						null,
 						null,
 						{
-							message: 'Invalid data provided',
-							code: 'ValidationError',
+							message: ResponseMessages.INVALID_DATA,
+							code: ResponseCodes.VALIDATION_ERROR,
 							path: 'phone',
 							errors: 'Destination: invalid phone number. Should be in international E.164 format',
 						},
@@ -174,7 +174,7 @@ const resendNotification = function (req: any, res: any): void {
 							if (err)
 								return RestApiService.Response.new.resp(
 									500,
-									'notification_log',
+									ResponseType.NOTIFICATION_LOG,
 									nlog,
 									null,
 									'Internal error while resending notification',
@@ -182,7 +182,7 @@ const resendNotification = function (req: any, res: any): void {
 								);
 							return RestApiService.Response.new.resp(
 								ERRORS.OKAY.CODE,
-								'notification_log',
+								ResponseType.NOTIFICATION_LOG,
 								nlog,
 								null,
 								null,
@@ -235,7 +235,7 @@ const deleteNotificationLog = (req: any, res: any): void {
 		if (err || !log) {
 			return RestApiService.Response.new.resp(
 				ERRORS.NOT_FOUND.CODE,
-				'notification_log',
+				ResponseType.NOTIFICATION_LOG,
 				null,
 				null,
 				ERRORS.NOT_FOUND.MESSAGE,
@@ -279,7 +279,7 @@ const getLogs = function (req: any, res: any): void {
 			if (err || !log) {
 				return RestApiService.Response.new.resp(
 					ERRORS.NOT_FOUND.CODE,
-					'notification_log',
+					ResponseType.NOTIFICATION_LOG,
 					null,
 					null,
 					ERRORS.NOT_FOUND.MESSAGE,
@@ -291,7 +291,7 @@ const getLogs = function (req: any, res: any): void {
 			if (log) {
 				return RestApiService.Response.new.resp(
 					ERRORS.OKAY.CODE,
-					'notification_log',
+					ResponseType.NOTIFICATION_LOG,
 					log,
 					null,
 					null,
@@ -328,7 +328,7 @@ const getLogs = function (req: any, res: any): void {
 				req.param('created_at.from')
 			).toDate();
 		}
-		//{"created_at": {"$gte": new Date(2012, 7, 14), "$lt": new Date(2012, 7, 15)}})
+		//{"created_at": {"$gte": new Date(ERRORS.CREATED.CODE2, 7, 14), "$lt": new Date(ERRORS.CREATED.CODE2, 7, 15)}})
 		if (req.param('created_at.to')) {
 			if (!query['created_at']) query['created_at'] = {};
 			query['created_at']['$lte'] = new moment(
@@ -399,12 +399,12 @@ const post = function (req: any, res: any): any {
 	if (req.body.type != 'webhook' && !req.body.template_id)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'No Template Id provided',
 			},
 			res
@@ -412,12 +412,12 @@ const post = function (req: any, res: any): any {
 	if (!req.body.destination)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'No Payload Destination provided',
 			},
 			res
@@ -425,12 +425,12 @@ const post = function (req: any, res: any): any {
 	if (!req.body.event)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'No Notification Event provided',
 			},
 			res
@@ -442,12 +442,12 @@ const post = function (req: any, res: any): any {
 	)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'Not valid Notification Type: ' + req.body.type,
 			},
 			res
@@ -458,12 +458,12 @@ const post = function (req: any, res: any): any {
 	)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'Destination: URL is not correct',
 			},
 			res
@@ -471,12 +471,12 @@ const post = function (req: any, res: any): any {
 	if (req.body.type == 'email' && !multiEmail(req.body.destination))
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'Destination: one or more email addresses entered are invalid',
 			},
 			res
@@ -488,12 +488,12 @@ const post = function (req: any, res: any): any {
 	) {
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'From: is not valid email address',
 			},
 			res
@@ -508,12 +508,12 @@ const post = function (req: any, res: any): any {
 	) {
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				path: 'phone',
 				errors: 'Destination: invalid phone number. Should be in international E.164 format',
 			},
@@ -523,12 +523,12 @@ const post = function (req: any, res: any): any {
 	if (req.body.type == 'sms' && sails.config.disable_sms)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors:
 					'SMS notifications not allowed in ' +
 					sails.config.environment +
@@ -549,12 +549,12 @@ const post = function (req: any, res: any): any {
 				if (err) {
 					return RestApiService.Response.new.resp(
 						ERRORS.BAD_REQUEST.CODE,
-						'notification',
+						ResponseType.NOTIFICATION,
 						notification,
 						null,
 						{
-							message: 'Invalid data provided',
-							code: 'ValidationError',
+							message: ResponseMessages.INVALID_DATA,
+							code: ResponseCodes.VALIDATION_ERROR,
 							errors: err,
 						},
 						res
@@ -568,8 +568,8 @@ const post = function (req: any, res: any): any {
 					);
 				}
 				return RestApiService.Response.new.resp(
-					201,
-					'notification',
+					ERRORS.CREATED.CODE,
+					ResponseType.NOTIFICATION,
 					req._companyAccount.company.notifications[
 						req._companyAccount.company.notifications.length - 1
 					],
@@ -631,12 +631,12 @@ const post = function (req: any, res: any): any {
 			if (err || !template) {
 				return RestApiService.Response.new.resp(
 					ERRORS.BAD_REQUEST.CODE,
-					'notification',
+					ResponseType.NOTIFICATION,
 					null,
 					null,
 					{
-						message: 'Invalid data provided',
-						code: 'ValidationError',
+						message: ResponseMessages.INVALID_DATA,
+						code: ResponseCodes.VALIDATION_ERROR,
 						errors: 'No Template with provided Id',
 					},
 					res
@@ -645,12 +645,12 @@ const post = function (req: any, res: any): any {
 				if (req.body.event != template.notification_event)
 					return RestApiService.Response.new.resp(
 						ERRORS.BAD_REQUEST.CODE,
-						'notification',
+						ResponseType.NOTIFICATION,
 						null,
 						null,
 						{
-							message: 'Invalid data provided',
-							code: 'ValidationError',
+							message: ResponseMessages.INVALID_DATA,
+							code: ResponseCodes.VALIDATION_ERROR,
 							errors: 'Template Notification Event mismatch',
 						},
 						res
@@ -664,17 +664,17 @@ const post = function (req: any, res: any): any {
 					if (err) {
 						return RestApiService.Response.new.resp(
 							ERRORS.BAD_REQUEST.CODE,
-							'notification',
+							ResponseType.NOTIFICATION,
 							notification,
 							null,
 							{
-								message: 'Invalid data provided',
-								code: 'ValidationError',
+								message: ResponseMessages.INVALID_DATA,
+								code: ResponseCodes.VALIDATION_ERROR,
 								errors: err,
 							},
 							res
 						);
-						//return ErrorService.err({message: 'Invalid data provided', errors: err},
+						//return ErrorService.err({message: ResponseMessages.INVALID_DATA, errors: err},
 						//  ErrorService.statusCodes.STATUS_FAIL_BAD_REQUEST, res);
 					}
 					if ((req.body.event = 'card_expiration_warning')) {
@@ -686,8 +686,8 @@ const post = function (req: any, res: any): any {
 					}
 					// finally, we're good to go by now
 					return RestApiService.Response.new.resp(
-						201,
-						'notification',
+						ERRORS.CREATED.CODE,
+						ResponseType.NOTIFICATION,
 						req._companyAccount.company.notifications[
 							req._companyAccount.company.notifications.length - 1
 						],
@@ -946,12 +946,12 @@ const postTemplate = function(req: any, res: any): any {
 	if (!req.body.notification_event)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			{
-				message: 'Invalid data provided',
-				code: 'ValidationError',
+				message: ResponseMessages.INVALID_DATA,
+				code: ResponseCodes.VALIDATION_ERROR,
 				errors: 'No Notification Event provided',
 			},
 			res
@@ -961,19 +961,19 @@ const postTemplate = function(req: any, res: any): any {
 		if (err) {
 			return RestApiService.Response.new.resp(
 				ERRORS.BAD_REQUEST.CODE,
-				'notification',
+				ResponseType.NOTIFICATION,
 				notificationTemplate,
 				null,
 				{
-					message: 'Invalid data provided',
-					code: 'ValidationError',
+					message: ResponseMessages.INVALID_DATA,
+					code: ResponseCodes.VALIDATION_ERROR,
 					errors: err,
 				},
 				res
 			);
 		}
 		return RestApiService.Response.new.resp(
-			201,
+			ERRORS.CREATED.CODE,
 			'template',
 			notificationTemplate,
 			null,
@@ -996,7 +996,7 @@ const _delete = function(req: any, res: any): any {
 	if (!notification) {
 		return RestApiService.Response.new.resp(
 			ERRORS.NOT_FOUND.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			null,
 			null,
 			ERRORS.NOT_FOUND.MESSAGE,
@@ -1009,13 +1009,13 @@ const _delete = function(req: any, res: any): any {
 		if (err) {
 			return RestApiService.Response.new.resp(
 				ERRORS.NOT_FOUND.CODE,
-				'notification',
+				ResponseType.NOTIFICATION,
 				null,
 				null,
 				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
-			//return ErrorService.err({message: 'Invalid data provided', errors: err.errors},
+			//return ErrorService.err({message: ResponseMessages.INVALID_DATA, errors: err.errors},
 			//  ErrorService.statusCodes.STATUS_FAIL_BAD_REQUEST, res);
 		}
 		if ((event = 'card_expiration_warning')) {
@@ -1027,7 +1027,7 @@ const _delete = function(req: any, res: any): any {
 		}
 		return RestApiService.Response.new.resp(
 			ERRORS.OKAY.CODE,
-			'notification',
+			ResponseType.NOTIFICATION,
 			notification,
 			null,
 			null,
@@ -1081,8 +1081,8 @@ const badRequestResponseError = function(error, type, res): any {
 		null,
 		null,
 		{
-			message: 'Invalid data provided',
-			code: 'ValidationError',
+			message: ResponseMessages.INVALID_DATA,
+			code: ResponseCodes.VALIDATION_ERROR,
 			errors: error,
 		},
 		res
