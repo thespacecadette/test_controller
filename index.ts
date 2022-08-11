@@ -1,6 +1,8 @@
 import * as moment from 'moment';
 import validator from 'validator';
-import { hasIn, pick, isNil } from 'lodash';
+import async from 'async';
+import sails from 'sails';
+import { hasIn, isNil, isEmpty, pick } from 'lodash';
 import ModelService from './src/services/modelService';
 import multiEmail from './src/utilities/multiEmail';
 import RestApiService, { ResponseType, ResponseMessages, ResponseCodes } from './src/services/restApiService';
@@ -8,14 +10,11 @@ import NotificationService from './src/services/notificationService';
 import CustomerService from './src/services/customerService';
 
 import { ERRORS } from './src/constants/errors';
+import { MOBILE_VALIDATOR } from './src/utilities/validator';
 
 const NotificationLogs = new ModelService.Instance().create('NotificationLog');
 const NotificationTemplates = new ModelService.Instance().create(
 	'NotificationTemplate'
-);
-const CompanyAccount = new ModelService.Instance().create('CompanyAccount');
-const NotificationServiceModel = new ModelService.Instance().create(
-	'NotificationService'
 );
 
 /**
@@ -24,11 +23,11 @@ const NotificationServiceModel = new ModelService.Instance().create(
  * @param res
  */
 const get = function (req: any, res: any): any {
-	if (req.param('_id')) {
+	if (!isEmpty(req.param('_id'))) {
 		var notification = req._companyAccount.company.notifications.id(
 			req.param('_id')
 		);
-		if (!notification) {
+		if (isEmpty(notification)) {
 			return RestApiService.Response.new.resp(
 				ERRORS.NOT_FOUND.CODE,
 				ResponseType.NOTIFICATION,
@@ -38,7 +37,7 @@ const get = function (req: any, res: any): any {
 				res
 			);
 		}
-		if (req.param('action') == 'test') {
+		if (req.param('action') === 'test') {
 			NotificationService._processnotification(
 				{
 					user: !!req._currentUser && !!req._currentUser.email ? req._currentUser.email : '', 
@@ -96,6 +95,7 @@ const get = function (req: any, res: any): any {
 
 const resendNotification = function (req: any, res: any): void {
 	var query = { company_id: req._companyAccount._id, _id: req.param('_id') };
+
 	NotificationLogs.findOne(query, function (err, log) {
 		if (err || !log) {
 			return RestApiService.Response.new.resp(
@@ -106,8 +106,6 @@ const resendNotification = function (req: any, res: any): void {
 				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
-			//return ErrorService.err({message: err},
-			//  ErrorService.statusCodes.STATUS_FAIL_NOT_FOUND, res);
 		}
 		if (log) {
 			if (req.body.destination) {
@@ -145,7 +143,7 @@ const resendNotification = function (req: any, res: any): void {
 				if (
 					log.type == 'sms' &&
 					!(
-						req.body.destination.match(/^\+[1-9]\d{1,14}$/g) ||
+						req.body.destination.match(MOBILE_VALIDATOR) ||
 						req.body.destination == '{{PHONE}}'
 					)
 				)
@@ -168,12 +166,13 @@ const resendNotification = function (req: any, res: any): void {
 				log,
 				req._companyAccount._id,
 				function (err, nlog) {
+					// TODO: handle error: err
 					async.waterfall(
 						[_getRootId, _updateLogParentRootId, _updateRootStatus],
 						function (err) {
 							if (err)
 								return RestApiService.Response.new.resp(
-									500,
+									ERRORS.INTERNAL_ERROR.CODE,
 									ResponseType.NOTIFICATION_LOG,
 									nlog,
 									null,
@@ -270,6 +269,7 @@ const getLogs = function (req: any, res: any): void {
 		company_id: false,
 		__v: false,
 	};
+
 	if (req.param('_id')) {
 		var query = {
 			company_id: req._companyAccount._id,
@@ -301,6 +301,7 @@ const getLogs = function (req: any, res: any): void {
 		});
 	} else {
 		var query = { company_id: req._companyAccount._id, archived: false };
+
 		if (req.param('archived') == 'true') {
 			query['archived'] = true;
 		}
@@ -324,14 +325,13 @@ const getLogs = function (req: any, res: any): void {
 		}
 		if (req.param('created_at.from')) {
 			query['created_at'] = {};
-			query['created_at']['$gte'] = new moment(
+			query['created_at']['$gte'] = moment(
 				req.param('created_at.from')
 			).toDate();
 		}
-		//{"created_at": {"$gte": new Date(ERRORS.CREATED.CODE2, 7, 14), "$lt": new Date(ERRORS.CREATED.CODE2, 7, 15)}})
 		if (req.param('created_at.to')) {
 			if (!query['created_at']) query['created_at'] = {};
-			query['created_at']['$lte'] = new moment(
+			query['created_at']['$lte'] = moment(
 				req.param('created_at.to')
 			).toDate();
 		}
@@ -374,8 +374,8 @@ const getLogs = function (req: any, res: any): void {
 						null,
 						res
 					);
-					//return ErrorService.err({message: 'database query error'}, ErrorService.statusCodes.STATUS_SRV_ERROR, res);
 				}
+
 				return RestApiService.Response.new.resp(
 					ERRORS.OKAY.CODE,
 					'notification_logs',
@@ -384,7 +384,6 @@ const getLogs = function (req: any, res: any): void {
 					null,
 					res
 				);
-				//return RestApiService.Response.success(result, res);
 			}
 		);
 	}
@@ -396,6 +395,7 @@ const getLogs = function (req: any, res: any): void {
  * @param res
  */
 const post = function (req: any, res: any): any {
+	// TODO: All of the below can be refactored into one return function with a switch statement for req.body.type for readability
 	if (req.body.type != 'webhook' && !req.body.template_id)
 		return RestApiService.Response.new.resp(
 			ERRORS.BAD_REQUEST.CODE,
@@ -502,7 +502,7 @@ const post = function (req: any, res: any): any {
 	if (
 		req.body.type == 'sms' &&
 		!(
-			req.body.destination.match(/^\+[1-9]\d{1,14}$/g) ||
+			req.body.destination.match(MOBILE_VALIDATOR) ||
 			req.body.destination == '{{PHONE}}'
 		)
 	) {
@@ -537,11 +537,13 @@ const post = function (req: any, res: any): any {
 			res
 		);
 	if (req.body.type === 'webhook') {
-		function createNotification() {
-			const webhookBody = pick(
-				req.body,
-				Object.values(CompanyAccount.notificationWebhookFields)
-			);
+		const hooks: string[] = Object.values(CompanyAccount.notificationWebhookFields)
+		const webhookBody = pick(
+			req.body,
+			hooks
+		);
+
+		NotificationService.notificationServiceValidation(() => {
 			const notification =
 				req._companyAccount.company.notifications.create(webhookBody);
 			req._companyAccount.company.notifications.push(notification);
@@ -560,6 +562,7 @@ const post = function (req: any, res: any): any {
 						res
 					);
 				}
+
 				if (req.body.event === 'card_expiration_warning') {
 					CustomerService.update_expiration_warning_flags(
 						req._companyAccount,
@@ -567,6 +570,7 @@ const post = function (req: any, res: any): any {
 						function (err, custs) {}
 					);
 				}
+
 				return RestApiService.Response.new.resp(
 					ERRORS.CREATED.CODE,
 					ResponseType.NOTIFICATION,
@@ -578,49 +582,7 @@ const post = function (req: any, res: any): any {
 					res
 				);
 			});
-		}
-		function notificationServiceValidation(callback) {
-			const { notificationServiceId, destination } =
-				CompanyAccount.notificationWebhookFields;
-			const webhookBody = pick(
-				req.body,
-				Object.values(CompanyAccount.notificationWebhookFields)
-			);
-			if (!webhookBody[notificationServiceId]) return callback();
-			const { protocol } = new URL(webhookBody[destination]);
-			const type = 'notification_service';
-			if (protocol !== 'https:') {
-				return badRequestResponseError(
-					'The webhook destination should be in conjunction with HTTPS to provide confidentiality.',
-					type,
-					res
-				);
-			}
-			NotificationServiceModel.findOne(
-				{ _id: webhookBody[notificationServiceId] },
-				(err, notificationService) => {
-					if (err) {
-						return RestApiService.Response.new.resp(
-							500,
-							type,
-							null,
-							null,
-							'Internal error while resending notification',
-							res
-						);
-					}
-					if (!notificationService) {
-						return badRequestResponseError(
-							'Notification Service was not found by provided id',
-							type,
-							res
-						);
-					}
-					return callback(null, notificationService);
-				}
-			);
-		}
-		notificationServiceValidation(createNotification);
+		}, res, CompanyAccount, webhookBody);
 	} else {
 		var query = {
 			company_id: req._companyAccount._id,
@@ -674,8 +636,6 @@ const post = function (req: any, res: any): any {
 							},
 							res
 						);
-						//return ErrorService.err({message: ResponseMessages.INVALID_DATA, errors: err},
-						//  ErrorService.statusCodes.STATUS_FAIL_BAD_REQUEST, res);
 					}
 					if ((req.body.event = 'card_expiration_warning')) {
 						CustomerService.update_expiration_warning_flags(
@@ -695,7 +655,6 @@ const post = function (req: any, res: any): any {
 						null,
 						res
 					);
-					//return RestApiService.Response.success({notification: notification}, res);
 				});
 			}
 		});
@@ -710,12 +669,14 @@ const getTemplate = function(req: any, res: any): void {
 	var limit = Number(req.query.limit || LIMIT);
 	var skip = Number(req.query.skip || SKIP);
 	if (limit > 1000) limit = 1000;
-	if (req.param('_id')) {
-		var query = {
-			company_id: req._companyAccount._id,
-			_id: req.param('_id'),
-			archived: 'false',
-		};
+
+	const _id = req.param('_id')
+	// I fixed archived to be a boolean, as it was a string false in previous code
+	var query: any = { company_id: req._companyAccount._id, archived: false };
+	
+	if (!isEmpty(_id)) {
+		query._id = _id 
+
 		NotificationTemplates.findOne(
 			query,
 			{ __v: 0 },
@@ -738,15 +699,10 @@ const getTemplate = function(req: any, res: any): void {
 						null,
 						res
 					);
-					// return RestApiService.Response.success({notification: notification}, res);
 				}
 			}
 		);
 	} else {
-		var query = { company_id: req._companyAccount._id, archived: false };
-		//if (req.param('archived') == 'true') {
-		//  query['archived'] = true;
-		//}
 		var proj = {
 			company_id: false,
 			__v: false,
@@ -758,13 +714,13 @@ const getTemplate = function(req: any, res: any): void {
 		if (req.param('html') == 'false') query.html = { $ne: true };
 		if (req.param('created_at.from')) {
 			query['created_at'] = {};
-			query['created_at']['$gte'] = new moment(
+			query['created_at']['$gte'] = moment(
 				req.param('created_at.from')
 			).toDate();
 		}
 		if (req.param('created_at.to')) {
 			if (!query['created_at']) query['created_at'] = {};
-			query['created_at']['$lte'] = new moment(
+			query['created_at']['$lte'] = moment(
 				req.param('created_at.to')
 			).toDate();
 		}
@@ -777,9 +733,11 @@ const getTemplate = function(req: any, res: any): void {
 				sort[sortkey] = -1;
 			}
 		}
-		//console.log(req.params);
-		var result = { count: 0, skip: skip, limit: limit, charges: [] };
+
+		var result: any = { count: 0, skip: skip, limit: limit, charges: [] };
 		var defresult = result;
+		// TODO: The below code can be abstracted into a simpler function.
+		// e.g. async(callbacks[], errorCallback)
 		async.waterfall(
 			[
 				function (callback) {
@@ -800,6 +758,7 @@ const getTemplate = function(req: any, res: any): void {
 			],
 			function (err, result) {
 				if (err) {
+					// FIXME: Flagging that an error results in a 200 response (possibly on purpose, but not clear in code why). 
 					return RestApiService.Response.new.resp(
 						ERRORS.OKAY.CODE,
 						'templates',
@@ -808,7 +767,6 @@ const getTemplate = function(req: any, res: any): void {
 						null,
 						res
 					);
-					//return ErrorService.err({message: 'database query error'}, ErrorService.statusCodes.STATUS_SRV_ERROR, res);
 				}
 				return RestApiService.Response.new.resp(
 					ERRORS.OKAY.CODE,
@@ -818,7 +776,6 @@ const getTemplate = function(req: any, res: any): void {
 					null,
 					res
 				);
-				//return RestApiService.Response.success(result, res);
 			}
 		);
 	}
@@ -859,7 +816,7 @@ const updateTemplate = function(req: any, res: any): void {
 			template.save(function (err, template) {
 				if (err) {
 					return RestApiService.Response.new.resp(
-						500,
+						ERRORS.INTERNAL_ERROR.CODE,
 						'template',
 						null,
 						null,
@@ -902,7 +859,7 @@ const deleteTemplate = function(req: any, res: any): void {
 			template.save(function (err, template) {
 				if (err) {
 					return RestApiService.Response.new.resp(
-						500,
+						ERRORS.INTERNAL_ERROR.CODE,
 						'template',
 						null,
 						null,
@@ -993,7 +950,7 @@ const _delete = function(req: any, res: any): any {
 	var notification = req._companyAccount.company.notifications.id(
 		req.param('_id')
 	);
-	if (!notification) {
+	if (isEmpty(notification)) {
 		return RestApiService.Response.new.resp(
 			ERRORS.NOT_FOUND.CODE,
 			ResponseType.NOTIFICATION,
@@ -1003,6 +960,7 @@ const _delete = function(req: any, res: any): any {
 			res
 		);
 	}
+
 	var event = notification.event;
 	notification.remove();
 	req._companyAccount.save(function (err) {
@@ -1015,14 +973,14 @@ const _delete = function(req: any, res: any): any {
 				ERRORS.NOT_FOUND.MESSAGE,
 				res
 			);
-			//return ErrorService.err({message: ResponseMessages.INVALID_DATA, errors: err.errors},
-			//  ErrorService.statusCodes.STATUS_FAIL_BAD_REQUEST, res);
 		}
-		if ((event = 'card_expiration_warning')) {
+		if ((event === 'card_expiration_warning')) {
 			CustomerService.update_expiration_warning_flags(
 				req._companyAccount,
 				false,
-				function (err, custs) {}
+				function (err, custs) {
+					// TODO: handle
+				}
 			);
 		}
 		return RestApiService.Response.new.resp(
@@ -1033,16 +991,15 @@ const _delete = function(req: any, res: any): any {
 			null,
 			res
 		);
-		// return RestApiService.Response.success({notification: notification,deleted:'ok'}, res);
 	});
 }
 
 const getTemplateVars = function(req: any, res: any): any {
-	if (req.param('event')) {
+	if (!isEmpty(req.param('event'))) {
 		var eVars = NotificationService.getNotificationTemplateAvailableVars(
 			req.param('event')
 		);
-		if (eVars)
+		if (!isEmpty(eVars))
 			return RestApiService.Response.new.resp(
 				ERRORS.OKAY.CODE,
 				'variables',

@@ -15,4 +15,8 @@ export const ERRORS = {
 		CODE: 400,
 		MESSAGE: 'BAD REQUEST',
 	},
+	INTERNAL_ERROR: {
+		CODE: 500,
+		MESSAGE: 'INTERNAL_ERROR',
+	},
 };
