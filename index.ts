@@ -5,7 +5,11 @@ import sails from 'sails';
 import { hasIn, isNil, isEmpty, pick } from 'lodash';
 import ModelService from './src/services/modelService';
 import multiEmail from './src/utilities/multiEmail';
-import RestApiService, { ResponseType, ResponseMessages, ResponseCodes } from './src/services/restApiService';
+import RestApiService, {
+	ResponseType,
+	ResponseMessages,
+	ResponseCodes,
+} from './src/services/restApiService';
 import NotificationService from './src/services/notificationService';
 import CustomerService from './src/services/customerService';
 
@@ -40,7 +44,10 @@ const get = function (req: any, res: any): any {
 		if (req.param('action') === 'test') {
 			NotificationService._processnotification(
 				{
-					user: !!req._currentUser && !!req._currentUser.email ? req._currentUser.email : '', 
+					user:
+						!!req._currentUser && !!req._currentUser.email
+							? req._currentUser.email
+							: '',
 					notice: 'THIS IS TEST',
 					testing: 'thisisfortest',
 				},
@@ -222,9 +229,9 @@ const resendNotification = function (req: any, res: any): void {
 			);
 		}
 	});
-}
+};
 
-const deleteNotificationLog = (req: any, res: any): void {
+const deleteNotificationLog = (req: any, res: any): void => {
 	var query = {
 		company_id: req._companyAccount._id,
 		_id: req.param('_id'),
@@ -255,7 +262,7 @@ const deleteNotificationLog = (req: any, res: any): void {
 			);
 		});
 	});
-}
+};
 
 const getLogs = function (req: any, res: any): void {
 	var SKIP = 0;
@@ -271,7 +278,7 @@ const getLogs = function (req: any, res: any): void {
 	};
 
 	if (req.param('_id')) {
-		var query = {
+		var query: any = {
 			company_id: req._companyAccount._id,
 			_id: req.param('_id'),
 		};
@@ -300,7 +307,10 @@ const getLogs = function (req: any, res: any): void {
 			}
 		});
 	} else {
-		var query = { company_id: req._companyAccount._id, archived: false };
+		var query: any = {
+			company_id: req._companyAccount._id,
+			archived: false,
+		};
 
 		if (req.param('archived') == 'true') {
 			query['archived'] = true;
@@ -335,7 +345,8 @@ const getLogs = function (req: any, res: any): void {
 				req.param('created_at.to')
 			).toDate();
 		}
-		var sort = { created_at: -1 };
+		var sort: any = { created_at: -1 };
+
 		if (req.param('sortkey')) {
 			var sortkey = req.param('sortkey');
 			sort = {};
@@ -387,7 +398,7 @@ const getLogs = function (req: any, res: any): void {
 			}
 		);
 	}
-}
+};
 
 /**
  * Notifications POST REST Endpoint
@@ -537,52 +548,62 @@ const post = function (req: any, res: any): any {
 			res
 		);
 	if (req.body.type === 'webhook') {
-		const hooks: string[] = Object.values(CompanyAccount.notificationWebhookFields)
-		const webhookBody = pick(
-			req.body,
-			hooks
-		);
+		// FIXME: CompanyAccount was not declared
+		const CompanyAccount = req._companyAccount;
 
-		NotificationService.notificationServiceValidation(() => {
-			const notification =
-				req._companyAccount.company.notifications.create(webhookBody);
-			req._companyAccount.company.notifications.push(notification);
-			req._companyAccount.save(function (err) {
-				if (err) {
+		const hooks: string[] = Object.values(
+			CompanyAccount.notificationWebhookFields
+		);
+		const webhookBody = pick(req.body, hooks);
+
+		NotificationService.notificationServiceValidation(
+			() => {
+				const notification =
+					req._companyAccount.company.notifications.create(
+						webhookBody
+					);
+				req._companyAccount.company.notifications.push(notification);
+				req._companyAccount.save(function (err) {
+					if (err) {
+						return RestApiService.Response.new.resp(
+							ERRORS.BAD_REQUEST.CODE,
+							ResponseType.NOTIFICATION,
+							notification,
+							null,
+							{
+								message: ResponseMessages.INVALID_DATA,
+								code: ResponseCodes.VALIDATION_ERROR,
+								errors: err,
+							},
+							res
+						);
+					}
+
+					if (req.body.event === 'card_expiration_warning') {
+						CustomerService.update_expiration_warning_flags(
+							req._companyAccount,
+							true,
+							function (err, custs) {}
+						);
+					}
+
 					return RestApiService.Response.new.resp(
-						ERRORS.BAD_REQUEST.CODE,
+						ERRORS.CREATED.CODE,
 						ResponseType.NOTIFICATION,
-						notification,
+						req._companyAccount.company.notifications[
+							req._companyAccount.company.notifications.length - 1
+						],
 						null,
-						{
-							message: ResponseMessages.INVALID_DATA,
-							code: ResponseCodes.VALIDATION_ERROR,
-							errors: err,
-						},
+						null,
 						res
 					);
-				}
-
-				if (req.body.event === 'card_expiration_warning') {
-					CustomerService.update_expiration_warning_flags(
-						req._companyAccount,
-						true,
-						function (err, custs) {}
-					);
-				}
-
-				return RestApiService.Response.new.resp(
-					ERRORS.CREATED.CODE,
-					ResponseType.NOTIFICATION,
-					req._companyAccount.company.notifications[
-						req._companyAccount.company.notifications.length - 1
-					],
-					null,
-					null,
-					res
-				);
-			});
-		}, res, CompanyAccount, webhookBody);
+				});
+			},
+			res,
+			// FIXME: CompanyAccount was not declared
+			CompanyAccount,
+			webhookBody
+		);
 	} else {
 		var query = {
 			company_id: req._companyAccount._id,
@@ -659,9 +680,9 @@ const post = function (req: any, res: any): any {
 			}
 		});
 	}
-}
+};
 
-const getTemplate = function(req: any, res: any): void {
+const getTemplate = function (req: any, res: any): void {
 	var SKIP = 0;
 	var LIMIT = 100;
 	if (isNaN(req.query.limit)) req.query.limit = null;
@@ -670,12 +691,12 @@ const getTemplate = function(req: any, res: any): void {
 	var skip = Number(req.query.skip || SKIP);
 	if (limit > 1000) limit = 1000;
 
-	const _id = req.param('_id')
+	const _id = req.param('_id');
 	// I fixed archived to be a boolean, as it was a string false in previous code
 	var query: any = { company_id: req._companyAccount._id, archived: false };
-	
+
 	if (!isEmpty(_id)) {
-		query._id = _id 
+		query._id = _id;
 
 		NotificationTemplates.findOne(
 			query,
@@ -724,7 +745,7 @@ const getTemplate = function(req: any, res: any): void {
 				req.param('created_at.to')
 			).toDate();
 		}
-		var sort = { created_at: -1 };
+		var sort: any = { created_at: -1 };
 		if (req.param('sortkey')) {
 			var sortkey = req.param('sortkey');
 			sort = {};
@@ -758,7 +779,7 @@ const getTemplate = function(req: any, res: any): void {
 			],
 			function (err, result) {
 				if (err) {
-					// FIXME: Flagging that an error results in a 200 response (possibly on purpose, but not clear in code why). 
+					// FIXME: Flagging that an error results in a 200 response (possibly on purpose, but not clear in code why).
 					return RestApiService.Response.new.resp(
 						ERRORS.OKAY.CODE,
 						'templates',
@@ -779,9 +800,9 @@ const getTemplate = function(req: any, res: any): void {
 			}
 		);
 	}
-}
+};
 
-const updateTemplate = function(req: any, res: any): void {
+const updateTemplate = function (req: any, res: any): void {
 	var query = {
 		company_id: req._companyAccount._id,
 		_id: req.param('_id'),
@@ -836,9 +857,9 @@ const updateTemplate = function(req: any, res: any): void {
 			});
 		}
 	});
-}
+};
 
-const deleteTemplate = function(req: any, res: any): void {
+const deleteTemplate = function (req: any, res: any): void {
 	var query = {
 		company_id: req._companyAccount._id,
 		_id: req.param('_id'),
@@ -879,14 +900,14 @@ const deleteTemplate = function(req: any, res: any): void {
 			});
 		}
 	});
-}
+};
 
 /**
  * Notifications Template POST REST Endpoint
  * @param req
  * @param res
  */
-const postTemplate = function(req: any, res: any): any {
+const postTemplate = function (req: any, res: any): any {
 	var template = req.body;
 	delete template.archived,
 		template.created_at,
@@ -938,7 +959,7 @@ const postTemplate = function(req: any, res: any): any {
 			res
 		);
 	});
-}
+};
 
 /**
  * Notifications DELETE REST Endpoint
@@ -946,7 +967,7 @@ const postTemplate = function(req: any, res: any): any {
  * @param res
  */
 
-const _delete = function(req: any, res: any): any {
+const _delete = function (req: any, res: any): any {
 	var notification = req._companyAccount.company.notifications.id(
 		req.param('_id')
 	);
@@ -974,7 +995,7 @@ const _delete = function(req: any, res: any): any {
 				res
 			);
 		}
-		if ((event === 'card_expiration_warning')) {
+		if (event === 'card_expiration_warning') {
 			CustomerService.update_expiration_warning_flags(
 				req._companyAccount,
 				false,
@@ -992,9 +1013,9 @@ const _delete = function(req: any, res: any): any {
 			res
 		);
 	});
-}
+};
 
-const getTemplateVars = function(req: any, res: any): any {
+const getTemplateVars = function (req: any, res: any): any {
 	if (!isEmpty(req.param('event'))) {
 		var eVars = NotificationService.getNotificationTemplateAvailableVars(
 			req.param('event')
@@ -1029,9 +1050,9 @@ const getTemplateVars = function(req: any, res: any): any {
 			res
 		);
 	}
-}
+};
 
-const badRequestResponseError = function(error, type, res): any {
+const badRequestResponseError = function (error, type, res): any {
 	return RestApiService.Response.new.resp(
 		ERRORS.BAD_REQUEST.CODE,
 		type,
@@ -1044,10 +1065,10 @@ const badRequestResponseError = function(error, type, res): any {
 		},
 		res
 	);
-}
+};
 
 export default {
-    badRequestResponseError,
+	badRequestResponseError,
 	// Fixed reserved word
 	delete: _delete,
 	deleteNotificationLog,
@@ -1056,7 +1077,7 @@ export default {
 	getLogs,
 	getTemplate,
 	getTemplateVars,
-    multiEmail,
+	multiEmail,
 	resendNotification,
 	post,
 	postTemplate,

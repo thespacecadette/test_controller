@@ -22,6 +22,8 @@ function _resendNotification(
 
 function getNotificationTemplateAvailableVars(event: string) {}
 
+function badRequestResponseError(message: string, type: any, res: any) {}
+
 function notificationServiceValidation(
 	callback: any,
 	res: any,
