@@ -1,15 +1,20 @@
 import moment from 'moment';
 import validator from 'validator';
 import lodash from 'lodash';
-import ModelService from '../services/ModelService';
+import ModelService from './src/services/modelService';
 import multiEmail from './src/utilities/multiEmail';
+import RestApiService from './src/services/restApiService';
+import NotificationService from './src/services/notificationService';
+import CustomerService from './src/services/customerService';
 
-const NotificationLogs = new ModelService.Instance.create('NotificationLog');
-const NotificationTemplates = new ModelService.Instance.create(
+import { INVALID_DATA_PROVIDED } from './src/constants/errors';
+
+const NotificationLogs = new ModelService.Instance().create('NotificationLog');
+const NotificationTemplates = new ModelService.Instance().create(
 	'NotificationTemplate'
 );
-const CompanyAccount = new ModelService.Instance.create('CompanyAccount');
-const NotificationServiceModel = new ModelService.Instance.create(
+const CompanyAccount = new ModelService.Instance().create('CompanyAccount');
+const NotificationServiceModel = new ModelService.Instance().create(
 	'NotificationService'
 );
 
